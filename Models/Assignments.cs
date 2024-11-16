@@ -23,4 +23,9 @@ public class Assignments
     {
         return AssignmentsList;
     }
+
+    public int GetCount()
+    {
+        return Count;
+    }
 }
