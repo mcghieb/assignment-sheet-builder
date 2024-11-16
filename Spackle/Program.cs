@@ -1,16 +1,13 @@
 ﻿
-using System;                             // For general utilities like DateTime
-using System.Collections.Generic;         // For List<T> and other collections
-using System.IO;                          // For handling file I/O (e.g., JSON key file)
-using GoogleSheetsWrapper;                // For the wrapper itself
+namespace Spackle;
 
-
-class Spackler
+public class Spackler
 {
-    static void Main()
+    
+    public void Main()
     {
-        var string googleSheetsID = "1uUDWwGnRBfa-cOX7M14uqcuO9z6T3M_PfqF5juhru_4";
-        var string userAccountEmail = "spackler@blakeassignmentspackler.iam.gserviceaccount.com"
+        var googleSheetsID = "1uUDWwGnRBfa-cOX7M14uqcuO9z6T3M_PfqF5juhru_4";
+        var userAccountEmail = "spackler@blakeassignmentspackler.iam.gserviceaccount.com";
 
         // Instantiate the wrapper with the necessary credentials
         var googleSheets = new GoogleSheets($"{googleSheetsID}", "Assignments", $"{userAccountEmail}");
