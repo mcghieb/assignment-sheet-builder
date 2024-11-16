@@ -27,7 +27,7 @@ public class CanvasController
         await SignInAsync(page, Username, Password, CanvasBaseUrl);
 
         // Get valid class names
-        var validClassNames = await GetValidClassesAsync();
+        var validClassNames = GetValidClassesAsync();
 
         foreach (var className in validClassNames)
         {
@@ -55,14 +55,13 @@ public class CanvasController
     }
 
     // TODO: make the api call for this
-    private static Task<List<string>> GetValidClassesAsync()
+    private static List<string> GetValidClassesAsync()
     {
-        // Replace this with logic to fetch valid class names.
-        return Task.FromResult<List<string>>(["C S 180-001: Intro to Data Science"]);
+        return ["C S 180-001: Intro to Data Science", "C S 203-001: Software Engineering Lab 2"];
     }
 }
 
-
+// TODO: refactor to scrape from Home page (not Assignments page)
 public partial class AssignmentScraper(IPage page)
 {
     public async Task<Assignments> ScrapeAssignmentsAsync()

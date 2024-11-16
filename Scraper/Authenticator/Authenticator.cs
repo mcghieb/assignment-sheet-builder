@@ -6,7 +6,7 @@ public static class Authenticator
 {
     public static async Task SignInAsync(IPage page, string username, string password, string lmsBaseUrl)
     {
-        await page.GotoAsync("https://byu.instructure.com");
+        await page.GotoAsync(lmsBaseUrl);
         await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
 
         await page.FillAsync("input[name=\"username\"]", username);
@@ -16,6 +16,6 @@ public static class Authenticator
         await page.WaitForSelectorAsync("#trust-browser-button");
         await page.ClickAsync("#trust-browser-button");
 
-        await page.WaitForURLAsync(lmsBaseUrl);
+        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
     }
 }

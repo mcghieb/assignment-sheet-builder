@@ -4,6 +4,7 @@ namespace Scraper.Navigator;
 
 public class CanvasNavigator(IPage page)
 {
+    // TODO: Refactor to navigate to Home Page
     public async Task NavigateToAssignmentsAsync(string className)
     {
         var classLink = page.Locator($"h3.ic-DashboardCard__header-title:has-text('{className}')");
