@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Models;
 using Scraper.Navigator;
+using Scraper.Service;
 using static Scraper.Authenticator.Authenticator;
 
 namespace Scraper.Controller;
@@ -27,7 +28,7 @@ public class CanvasController
         await SignInAsync(page, Username, Password, CanvasBaseUrl);
 
         // Get valid class names
-        var validClassNames = GetValidClassesAsync();
+        var validClassIdList = CanvasService.GetCourseIds();
 
         foreach (var className in validClassNames)
         {
@@ -37,7 +38,7 @@ public class CanvasController
             try
             {
                 // Navigate to assignments page
-                await navigator.NavigateToAssignmentsAsync(className);
+                await navigator.NavigateToHomeAsync(className);
 
                 // Scrape assignments
                 var assignments = await scraper.ScrapeAssignmentsAsync();
@@ -52,12 +53,6 @@ public class CanvasController
                 Console.WriteLine($"Error processing class {className}: {ex.Message}");
             }
         }
-    }
-
-    // TODO: make the api call for this
-    private static List<string> GetValidClassesAsync()
-    {
-        return ["C S 180-001: Intro to Data Science", "C S 203-001: Software Engineering Lab 2"];
     }
 }
 
