@@ -32,7 +32,7 @@ class Spackler
                 assignment.ClassCode,
                 assignment.Name,
                 assignment.Url,
-                assignment.DueDate.ToString("MM/dd/yyyy")
+                assignment.DueDate.ToString("MM/dd/yyyy") // Double click this in sheets to pop up a calendar
             });
         }
 
@@ -43,21 +43,7 @@ class Spackler
     }
 }
 
-public class Assignment
-{
-    public string ClassCode { get; }
-    public string Name { get; }
-    public string Url { get; }
-    public DateTime DueDate { get; }
 
-    public Assignment(string classCode, string name, string url, DateTime dueDate)
-    {
-        ClassCode = classCode;
-        Name = name;
-        Url = url;
-        DueDate = dueDate;
-    }
-}
 
 
 
