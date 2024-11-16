@@ -16,6 +16,6 @@ public static class Authenticator
         await page.WaitForSelectorAsync("#trust-browser-button");
         await page.ClickAsync("#trust-browser-button");
 
-        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await page.WaitForURLAsync(lmsBaseUrl);
     }
 }

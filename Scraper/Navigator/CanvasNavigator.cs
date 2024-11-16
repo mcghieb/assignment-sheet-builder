@@ -4,15 +4,9 @@ namespace Scraper.Navigator;
 
 public class CanvasNavigator(IPage page)
 {
-    // TODO: Refactor to navigate to Home Page
-    public async Task NavigateToHomeAsync(string className)
+    public async Task NavigateToHomeAsync(int courseId)
     {
-        var classLink = page.Locator($"h3.ic-DashboardCard__header-title:has-text('{className}')");
-        await classLink.ClickAsync();
-        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
-
-        var assignmentLink = page.Locator($"a.home:has-text('Home')");
-        await assignmentLink.ClickAsync();
+        await page.GotoAsync($"https://byu.instructure.com/courses/{courseId}");
         await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
     }
 }

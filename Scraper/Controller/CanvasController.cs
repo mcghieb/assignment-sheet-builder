@@ -9,7 +9,7 @@ namespace Scraper.Controller;
 
 public class CanvasController
 {
-    private const string CanvasBaseUrl = "https://byu.instructure.com";
+    private const string CanvasBaseUrl = "https://byu.instructure.com/";
     private readonly string Username = Environment.GetEnvironmentVariable("BYU_USER");
     private readonly string Password = Environment.GetEnvironmentVariable("BYU_PASS");
 
@@ -28,9 +28,9 @@ public class CanvasController
         await SignInAsync(page, Username, Password, CanvasBaseUrl);
 
         // Get valid class names
-        var validClassIdList = CanvasService.GetCourseIds();
+        var validCourseIdList = await CanvasService.GetCourseIds();
 
-        foreach (var className in validClassNames)
+        foreach (var courseId in validCourseIdList)
         {
             var navigator = new CanvasNavigator(page);
             var scraper = new AssignmentScraper(page);
@@ -38,19 +38,17 @@ public class CanvasController
             try
             {
                 // Navigate to assignments page
-                await navigator.NavigateToHomeAsync(className);
+                await navigator.NavigateToHomeAsync(courseId);
 
                 // Scrape assignments
                 var assignments = await scraper.ScrapeAssignmentsAsync();
-
-                Console.WriteLine($"{className}: {System.Text.Json.JsonSerializer.Serialize(assignments)}\n");
 
                 // Return to Canvas homepage
                 await page.GotoAsync(CanvasBaseUrl);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error processing class {className}: {ex.Message}");
+                Console.WriteLine($"Error processing class {courseId}: {ex.Message}");
             }
         }
     }
@@ -63,30 +61,21 @@ public partial class AssignmentScraper(IPage page)
     {
         var assignments = new Assignments();
 
-        await page.WaitForSelectorAsync("li.assignment");
-        var rawAssignments = page.Locator("li.assignment");
+        // await page.WaitForSelectorAsync("div.ig-row");
+        var rawAssignments = page.Locator("div.ig-row");
 
-        var count = await rawAssignments.CountAsync();
-        Console.WriteLine($"\n {count} assignments found!\n");
-
-        for (var i = 0; i < count; i++)
+        foreach (var assignment in rawAssignments)
         {
-            var rawAssignment = rawAssignments.Nth(i);
-
-            var name = await rawAssignment.Locator(".ig-title").TextContentAsync();
-            var link = await rawAssignment.Locator(".ig-title").GetAttributeAsync("href");
-
-            var rawDueDate = await rawAssignment.Locator(".assignment-date-due .screenreader-only").TextContentAsync();
-            var dueDate = (rawDueDate != null) ? ParseDate(rawDueDate) : DateTime.Now;
-
-            if (dueDate > DateTime.Now) 
-                break;
-            
-            if (name != null && link != null) 
-                assignments.AddAssignment(new Assignment("DUMMY-CC", name, link, dueDate));
+            var link = assignment.Locator("a.href");
+            var title = assignment.Locator("a.title").TextContent();
+            var dueDate = assignment.Locator("div.due_date_display").TextContent();
+            // TODO: parse the DUE DATE AND PUT INTO ASSIGNMENTS MODEL
         }
 
-        Console.WriteLine($"{assignments.GetCount()} future assignments!\n");
+        var count = await rawAssignments.CountAsync();
+        
+        Console.WriteLine($"Found {count} assignments");
+        
         return assignments;
     }
 
