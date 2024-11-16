@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <PackageReference Include="Google.Apis.Sheets.v4" Version="1.68.0.3568" />
+      <PackageReference Include="GoogleSheetsWrapper" Version="2.0.22" />
     </ItemGroup>
 
 </Project>
