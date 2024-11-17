@@ -7,7 +7,7 @@ using static Scraper.Authenticator.Authenticator;
 
 namespace Scraper.Controller;
 
-public class CanvasController
+public class CanvasController(Assignments assignments)
 {
     private const string CanvasBaseUrl = "https://byu.instructure.com/";
     private readonly string Username = Environment.GetEnvironmentVariable("BYU_USER");
@@ -29,7 +29,7 @@ public class CanvasController
 
         // Get valid class names
         var validCourseIdList = await CanvasService.GetCourseIds();
-
+        
         foreach (var courseId in validCourseIdList)
         {
             var navigator = new CanvasNavigator(page);
@@ -41,8 +41,8 @@ public class CanvasController
                 await navigator.NavigateToHomeAsync(courseId);
 
                 // Scrape assignments
-                var assignments = await scraper.ScrapeAssignmentsAsync();
-
+                await scraper.ScrapeAssignmentsAsync(assignments);
+                
                 // Return to Canvas homepage
                 await page.GotoAsync(CanvasBaseUrl);
             }
@@ -51,40 +51,83 @@ public class CanvasController
                 Console.WriteLine($"Error processing class {courseId}: {ex.Message}");
             }
         }
+
+        
     }
 }
 
-// TODO: refactor to scrape from Home page (not Assignments page)
 public partial class AssignmentScraper(IPage page)
 {
-    public async Task<Assignments> ScrapeAssignmentsAsync()
+    [GeneratedRegex(@"([a-zA-Z]+) (\d{1,2})")]
+    private static partial Regex DateRegex();
+    
+    [GeneratedRegex(@"([A-Z] [A-Z]) (\d{1,3}).*")]
+    private static partial Regex CourseCodeRegex();
+    
+    public async Task ScrapeAssignmentsAsync(Assignments assignments)
     {
-        var assignments = new Assignments();
-
-        // await page.WaitForSelectorAsync("div.ig-row");
-        var rawAssignments = page.Locator("div.ig-row");
-
-        foreach (var assignment in rawAssignments)
+        try 
         {
-            var link = assignment.Locator("a.href");
-            var title = assignment.Locator("a.title").TextContent();
-            var dueDate = assignment.Locator("div.due_date_display").TextContent();
-            // TODO: parse the DUE DATE AND PUT INTO ASSIGNMENTS MODEL
-        }
+            var rawAssignments = page.Locator("div.ig-row.ig-published.student-view");
+            var count = await rawAssignments.CountAsync();
+            Console.WriteLine($"Starting to scrape {count} assignments...");
+        
+            for (var i = 0; i < count; i++)
+            {
+                var assignment = rawAssignments.Nth(i);
+                await ProcessAssignmentAsync(assignment, assignments);
+            }
 
-        var count = await rawAssignments.CountAsync();
-        
-        Console.WriteLine($"Found {count} assignments");
-        
-        return assignments;
+            Console.WriteLine($"Successfully processed {count} assignments");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during assignment scraping: {ex.Message}");
+            throw;
+        }
     }
 
-    private static DateTime ParseDate(string rawDueDate)
+    private static async Task ProcessAssignmentAsync(ILocator assignment, Assignments assignments)
+    {
+        try
+        {
+            var title = await assignment.Locator("a.ig-title").TextContentAsync() ?? 
+                        throw new Exception("Assignment title cannot be null");
+            var url = await assignment.Locator("a.ig-title").GetAttributeAsync("href") ?? 
+                      throw new Exception("Assignment URL cannot be null");
+
+            // Fix for the timeout issue
+            var hasDueDate = await assignment.Locator("div.due_date_display.ig-details__item").CountAsync() > 0;
+            var rawDueDate = hasDueDate ? 
+                await assignment.Locator("div.due_date_display").TextContentAsync() : null;
+
+
+            if (!string.IsNullOrWhiteSpace(rawDueDate))
+            {
+                var dueDate = ParseDate(rawDueDate);
+                
+                // Console.WriteLine($"{title} - {dueDate} - {url}");
+                assignments.AddAssignment(new Assignment(
+                    "CS101",
+                    title.Trim(),
+                    url.Trim(),
+                    dueDate
+                ));
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing assignment: {ex.Message}");
+            // Decide if you want to throw here or just log the error
+        }
+    }
+
+    private static DateTime ParseDate(string? rawDueDate)
     {
         if (string.IsNullOrEmpty(rawDueDate))
             throw new ArgumentException("The due date cannot be null or empty.", nameof(rawDueDate));
 
-        var regex = MyRegex();
+        var regex = DateRegex();
         var match = regex.Match(rawDueDate);
 
         if (!match.Success)
@@ -92,11 +135,6 @@ public partial class AssignmentScraper(IPage page)
 
         var monthName = match.Groups[1].Value;
         var day = int.Parse(match.Groups[2].Value);
-        var hour = int.Parse(match.Groups[3].Value);
-        var minute = int.Parse(match.Groups[4].Value);
-        var period = match.Groups[5].Value;
-
-        if (period == "pm" && hour != 12) hour += 12;
 
         var months = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
         var month = Array.IndexOf(months, monthName) + 1;
@@ -104,9 +142,21 @@ public partial class AssignmentScraper(IPage page)
         if (month == 0)
             throw new FormatException($"Invalid month name: {monthName}");
 
-        return new DateTime(DateTime.Now.Year, month, day, hour, minute, 0);
+        return new DateTime(DateTime.Now.Year, month, day, 23, 59, 0);
     }
 
-    [GeneratedRegex(@"([a-zA-Z]+) (\d{1,2}) at (\d{1,2}):(\d{2})(am|pm)")]
-    private static partial Regex MyRegex();
+    private static string ParseCourseCode(string? rawCourse)
+    {
+        if (string.IsNullOrEmpty(rawCourse))
+            throw new ArgumentException("The class string cannot be null or empty.", nameof(rawCourse));
+        
+        var regex = CourseCodeRegex();
+        var match = regex.Match(rawCourse);
+        
+        if (!match.Success)
+            throw new FormatException("The class string is invalid.");
+        
+        var resultString = $"{match.Groups[1].Value.Replace(" ", "")}{match.Groups[2].Value}";
+        return resultString;
+    }
 }
