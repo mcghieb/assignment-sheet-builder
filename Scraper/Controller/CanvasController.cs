@@ -7,25 +7,16 @@ using static Scraper.Authenticator.Authenticator;
 
 namespace Scraper.Controller;
 
-public class CanvasController(Assignments assignments)
+public class CanvasController(Assignments assignments, IBrowser browser)
 {
     private const string CanvasBaseUrl = "https://byu.instructure.com/";
-    private readonly string Username = Environment.GetEnvironmentVariable("BYU_USER");
-    private readonly string Password = Environment.GetEnvironmentVariable("BYU_PASS");
-
+    
     public async Task RunAsync()
     {
-        using var playwright = await Playwright.CreateAsync();
-        var browser = await playwright.Firefox.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = false,
-            SlowMo = 50
-        });
-
         var page = await browser.NewPageAsync();
 
         // Authenticate user
-        await SignInAsync(page, Username, Password, CanvasBaseUrl);
+        await SignInAsync(page, CanvasBaseUrl);
 
         // Get valid class names
         var validCourseIdList = await CanvasService.GetCourseIds();
